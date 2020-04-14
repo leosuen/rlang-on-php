@@ -1,0 +1,37 @@
+version: '3.7'
+services:
+    nginx:
+        image: nginx:latest
+        container_name: nginx-rlang
+        links: 
+            - php
+        volumes: 
+            - ./nginx_config/nginx.conf:/etc/nginx/conf.d/default.conf
+            - ./server_container:/var/www/rlang-php
+            - ./server_container/uploaded_file:/var/www/rlang-php/uploaded_file
+            - ./server_container/rscript_warehouse:/var/www/rlang-php/rscript_warehouse
+            - ./server_container/analyze_output:/var/www/rlang-php/analyze_output
+        ports: 
+            - 8180:80 # use 8180 port to connect the container
+            - 8143:443 # 8143 port as secure connection (SSL), you need to setting proxy_pass in NGINX
+        networks: 
+            - rlang-php-network
+    
+    php:
+        build:
+            context: php_data
+            dockerfile: rlang-php.dockerfile
+        container_name: php-rlang
+        entrypoint:
+            - php-fpm
+        volumes:
+            - ./server_container:/var/www/rlang-php
+            - ./server_container/uploaded_file:/var/www/rlang-php/uploaded_file
+            - ./server_container/rscript_warehouse:/var/www/rlang-php/rscript_warehouse
+            - ./server_container/analyze_output:/var/www/rlang-php/analyze_output
+        networks: 
+            - rlang-php-network
+    
+networks: 
+    rlang-php-network:
+        driver: bridge
