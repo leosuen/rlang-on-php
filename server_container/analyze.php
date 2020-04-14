@@ -1,22 +1,21 @@
 <?php
+    #header('Content-Type: text/plain; charset=utf-8');
+
     $analyzeType = $_POST['ana_type'];
     $analyzeData = $_FILES['ana_data'];
+    $tmp_files = $analyzeData['tmp_name'];
     $filesha = ""; # 用以儲存檔案SHA的全域變數
-    $filesha = sha1_file($analyzeData);
-    mkdir("./analyze_output/" . $filesha);
-    rename("./uploaded_file/" . $analyzeData["name"] , "./analyze_output/" . $filesha . "/" . $filesha . ".csv");
+    #move_uploaded_file($tmp_files, "./uploaded_file/". $analyzeData["name"]);
+    $filesha = sha1_file($tmp_files);
+    if(!file_exists("./analyze_output/" . $filesha)){
+        mkdir("./analyze_output/" . $filesha);
+    }
+    move_uploaded_file($tmp_files, "./analyze_output/". $filesha . "/". $filesha . ".csv");
+    $file_name = "./analyze_output/". $filesha . "/". $filesha . ".csv";
     try {
-   
-        // Undefined | Multiple Files | $_FILES Corruption Attack
-        // If this request falls under any of them, treat it invalid.
-        if (
-            !isset($analyzeData['error']) ||
-            is_array($analyzeData['error'])
-        ) {
+        if (!isset($analyzeData['error']) || is_array($analyzeData['error'])) {
             throw new RuntimeException('Invalid parameters.');
         }
-    
-        // Check $analyzeData['error'] value.
         switch ($analyzeData['error']) {
             case UPLOAD_ERR_OK:
                 break;
@@ -28,43 +27,16 @@
             default:
                 throw new RuntimeException('Unknown errors.');
         }
-    
-        // You should also check filesize here.
         if ($analyzeData['size'] > 1000000) {
             throw new RuntimeException('Exceeded filesize limit.');
         }
-    
-        // DO NOT TRUST $analyzeData['mime'] VALUE !!
-        // Check MIME Type by yourself.
-        $finfo = new finfo(FILEINFO_MIME_TYPE);
-        if (false === $ext = array_search(
-            $finfo->file($analyzeData['tmp_name']),
-            array(
-                'csv' => 'text/csv',
-                'xls' => 'application/vnd.ms-excel',
-                'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            ),
-            true
-        )) {
-            throw new RuntimeException('Invalid file format.');
-        }
-    
-        // You should name it uniquely.
-        // DO NOT USE $analyzeData['name'] WITHOUT ANY VALIDATION !!
-        // On this example, obtain safe unique name from its binary data.
-        if (!move_uploaded_file(
-            $analyzeData['tmp_name'],
-            sprintf('./uploads/%s.%s',
-                sha1_file($analyzeData['tmp_name']),
-                $ext
-            )
-        )) {
-            throw new RuntimeException('Failed to move uploaded file.');
-        }
-    
-        echo 'File is uploaded successfully.';
+        if(!file_exists("./analyze_output/" . $filesha)){
+            mkdir("./analyze_output/" . $filesha);
+            move_uploaded_file($tmp_files, "./analyze_output/". $filesha . "/". $filesha . ".csv");
+        }    
+        $file_name = "./analyze_output/". $filesha . "/". $filesha . ".csv";
 
-        rscript($analyzeType, sha1_file($analyzeData['tmp_name']));
+        rscript($analyzeType, $filesha);
     
     } catch (RuntimeException $e) {
     
@@ -72,16 +44,21 @@
     
     }
 
-    function rscript($analyzeType, $analyzeData){
+    function rscript($analyzeType, $filename){
         switch ($analyzeType) {
             case 'UD_CFA_c':
-                exec("Rscript ./rscript_warehouse/".$analyzeType.".R ./uploaded_file/CFA_test.csv", $result);
+                #var_dump("Rscript ./rscript_warehouse/".$analyzeType.".R ./analyze_output/". $filename . "/" . $filename . ".csv " . $filename);
+                exec("Rscript ./rscript_warehouse/".$analyzeType.".R ./analyze_output/". $filename . "/" . $filename . ".csv" , $result);
+                # exec("Rscript XXX.R argu1 , $result);
+                #var_dump($result);
                 $res_json = $result[114]; #In this case, the data which is returned from R at array[114]
                 $utf8_res = json_decode($res_json);
                 
                 # print_r($utf8_res->{'table'});
                 # $utf8_res->{'table'} 得知有一維陣列，總共22個元素，在此拆成11-11
+                # $utf8_res->{'pngname'} 得知圖片產生路徑以及名稱
                 $data = $utf8_res->{'table'};
+                $pic = $utf8_res->{'pngname'};
                 $displayOutput = "";
                 for($i = 0; $i < count($data)/2 ; $i++){
                     
@@ -95,7 +72,8 @@
                 }
                 #print_r("<table>" . $displayOutput . "</table>");
                 $displayOutput = "<table border='1'>" . $displayOutput . "</table>";
-                echo $displayOutput;
+                $displayPic = "<img src=./analyze_output/" . $filename . "/" . $pic . " alt='R Graph' />";
+                echo $displayOutput . $displayPic;
                 break;
             
             default:
