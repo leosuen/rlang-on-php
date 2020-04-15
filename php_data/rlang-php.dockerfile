@@ -10,6 +10,7 @@ RUN set -e \
       && apt-get -y install locales dirmngr apt-transport-https ca-certificates software-properties-common gnupg2 \
       && apt-key adv --keyserver keys.gnupg.net --recv-key 'E19F5F87128899B192B1A2C2AD5F960A256A04AF' \
       && locale-gen en_US.UTF-8 \
+      && update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 \
       && add-apt-repository 'deb https://cran.csie.ntu.edu.tw//bin/linux/debian buster-cran35/' \
       && apt-get -y update \
       && apt-get install r-base curl openssl -y \

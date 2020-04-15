@@ -10,7 +10,8 @@
         <select name="ana_type" id="ana_type">
             <option value="test">test</option>
             <option value="UD_CFA">UD_CFA</option>
-            <option value="UD_CFA_c">UD_CFA_c</option>  
+            <option value="UD_CFA_c">UD_CFA_c</option>
+            <option value="Description_con">描述性統計分析-連續型資料</option>
         </select>
         <input type="file" name="ana_data" id="ana_data">
         <button type="submit">Send</button>
